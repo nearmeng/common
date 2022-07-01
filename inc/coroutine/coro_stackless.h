@@ -1,0 +1,214 @@
+#ifndef _CORO_STACKLESS_H_
+#define _CORO_STACKLESS_H_
+
+#include "linked_list/linked_list.h"
+#include "time/time_mgr.h"
+
+#define MAX_MGR_NAME_LEN		(128)
+#define MAX_CORO_TYPE_COUNT     (256)
+#define MAX_CORO_STACK_DEPTH    (5)
+#define MAKE_CORO_ID(__server_addr__, __coro_mgr_index__, __coro_index__)       ((((uint64_t)__server_addr__) << 32) + (((uint64_t)__coro_index__) << 10) + __coro_mgr_index__)
+#define GET_CORO_SERVER_ADDR(__coro_id__)                   (__coro_id__ >> 32)
+#define GET_CORO_MGR_INDEX(__coro_id__)                     (__coro_id__ & 0x3FF)
+#define CORO_WAIT_INTERVAL		(5 * 1000)
+
+enum CORO_STATE
+{
+    crsInvalid,
+
+    crsReady,       // ready for execute
+    crsStart,       // begin run
+    crsRunning,     // yield, wait for resume
+    crsStop,        // terminal for normal exit 
+    crsFailed,      // execute failed for some reason, can see coro_return_code for detail
+
+    crsTotal
+};
+
+enum CORO_RETURN_CODE
+{
+    crcInvalid          =       -1, 
+
+    crcSuccess          =       0,
+    crcTimeout          =       1,
+    crcInternalError    =       2,   
+
+    crcTotal
+};
+
+enum CORO_REPLY_TYPE
+{
+    crtInvalid,
+
+    crtMsg,
+    crtDB,
+
+    crtTotal
+};
+
+#define CORO_BEGIN() switch(get_yield_id()) { case 0:
+#define CORO_END() return crsStop; }
+
+#ifdef __linux__
+#define CORO_YIELD()								\
+  do {											\
+    return _yield_func(__COUNTER__ + 1);		\
+    case __COUNTER__:; 							\
+  } while(0);
+
+#else 
+#define CORO_YIELD()	         					\
+  do {											\
+    return _yield_func(__LINE__);	            \
+    case __LINE__:; 							\
+  } while(0);
+#endif
+
+struct CORO_REPLY
+{
+    int32_t     nReplyType;
+    void*       pReplyData;
+    int32_t     nReplyLen;
+};
+
+class CCoroStackless : public LINK_NODE
+{
+public: 
+    CCoroStackless() {};
+    virtual ~CCoroStackless() {};
+
+    BOOL init(uint64_t qwCoroID);
+    BOOL uninit();
+    virtual BOOL on_resume(void) { return TRUE; };
+
+    inline uint64_t get_coro_id(void);
+    inline int32_t get_yield_id(void);
+    inline uint32_t get_create_time(void);
+    inline uint32_t get_yield_time(void);
+    inline int32_t get_state(void);
+    inline CORO_REPLY& get_coro_reply(void);
+    inline int32_t get_coro_ret_code();
+
+    virtual CORO_STATE coro_process() = 0;
+
+    inline void set_coro_ret_code(int32_t nRetCode);
+    inline void set_state(int32_t nState);
+    inline void set_coro_reply(int32_t nReplyType, void* pReplyData, uint32_t dwDataLen);
+
+protected:
+    CORO_STATE _yield_func(int32_t nYieldID);
+
+private:
+    uint64_t    m_qwCoroID;
+    int32_t     m_nYieldID;
+    
+    uint32_t    m_dwCreateTime;
+    uint32_t    m_dwYieldTime;
+
+    int32_t     m_nState;
+
+    CORO_REPLY  m_Reply;
+    int32_t     m_nCoroRetCode;         // Э�̵�״̬��, ������ǰ״̬�ľ�����Ϣ
+};
+
+template<class T>
+class CCoroStacklessMgr
+{
+public:
+    CCoroStacklessMgr() ;
+    ~CCoroStacklessMgr() {};
+
+    virtual BOOL init(int32_t nShmType, int32_t nMgrIndex, BOOL nInitCoroCount, BOOL bResume);
+    virtual BOOL uninit(void);
+    virtual void mainloop(void);
+
+    inline static CCoroStacklessMgr instance(void);
+    
+    T* new_coro(void);
+    virtual T* find_coro(uint64_t qwCoroID);
+    BOOL del_coro(T* pCoro);
+
+    BOOL start_coro(CCoroStackless* pCoro, BOOL bImmediate = TRUE);
+    virtual BOOL resume_coro(CCoroStackless* pCoro);
+
+private:
+    BOOL _on_coro_process_run(CCoroStackless* pCoro, int32_t nReturnState);
+
+    struct TRAVERSE_CORO_RESUME
+    {
+        BOOL operator()(uint64_t qwCoroID, T* pCoro)
+        {
+            return pCoro->on_resume();
+        };
+    };
+
+private:
+    static CCoroStacklessMgr<T>     ms_Instance;
+    CShmObjectPool<T, uint64_t>     m_CoroPool;
+    int32_t                         m_nMgrIndex;
+
+    LINK_HEAD                       m_ReadyLinkHead;         //��ʼ����Э���б�
+    LINK_HEAD                       m_RunLinkHead;           //�����ϴ�yeildʱ��˳��������б�
+    LINK_HEAD                       m_DeleteLinkHead;        //����ʱ��˳���ɾ���б�
+};
+
+struct SHM_TYPE_INFO
+{
+    char    szMgrName[MAX_MGR_NAME_LEN];
+    int32_t nShmType;
+};
+
+struct CORO_MGR_DATA
+{
+    char    szMgrName[MAX_MGR_NAME_LEN];
+    void*   pMgr;
+};
+
+struct GLOBAL_STACKLESS_MGR_DATA
+{
+    int32_t         nShmTypeInfoCount;
+    SHM_TYPE_INFO   stShmTypeInfo[MAX_CORO_TYPE_COUNT];
+    int32_t         nCoroIDGenerator;
+    int32_t         nShmTypeGenerator;
+};
+
+class CGlobalStacklessMgr
+{
+public:
+    CGlobalStacklessMgr() {};
+    ~CGlobalStacklessMgr() {};
+
+    BOOL init(int32_t nServerAddr, int32_t nMgrShmType, int32_t nCoroBeginShmType, int32_t nCoroEndShmType, int32_t nCoroCount, BOOL bResume);
+    BOOL uninit(void);
+    void mainloop(void);
+
+    inline static CGlobalStacklessMgr& instance(void);
+
+    inline CCoroStackless* get_curr_coro(void);
+    BOOL push_curr_coro(CCoroStackless* pCoro);
+    BOOL pop_curr_coro(void);
+
+    BOOL add_coro_stackless_mgr(const char* pcszMgrName, void* pMgr);
+    uint64_t generate_coro_id(int32_t nMgrIndex);
+
+    CCoroStackless* get_coro(uint64_t qwCoroID);
+    BOOL resume_coro(CCoroStackless* pCoro);
+    
+private:
+    int32_t _get_shm_type_by_mgr_name(const char* pcszMgrName);
+
+
+private:
+    static CGlobalStacklessMgr*             ms_Instance;
+
+    int32_t                                 m_nServerAddr;
+    int32_t                                 m_nCurrCoroStackIndex;
+    CCoroStackless*                         m_pCurrCoro[MAX_CORO_STACK_DEPTH];
+    CShmObject<GLOBAL_STACKLESS_MGR_DATA>   m_MgrData;
+
+    std::vector<CORO_MGR_DATA>              m_CoroStacklessMgrList;
+};
+
+#include "coro_stackless_inl.h"
+
+#endif
