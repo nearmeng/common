@@ -72,8 +72,7 @@ function (init_project)
     endif ()
 endfunction()
 
-function (pre_project TARGET_TYPE)
-	get_filename_component (TARGET_NAME ${CMAKE_CURRENT_SOURCE_DIR} NAME)
+function (pre_project TARGET_NAME TARGET_TYPE)
 	get_filename_component (TARGET_DIR ${BASE_DIR}/src ABSOLUTE)
 	get_filename_component (TARGET_INC_DIR ${BASE_DIR}/inc ABSOLUTE)
 

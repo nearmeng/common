@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.20)
 
-#project(common)
+project(common)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 #set(CMAKE_VERBOSE_MAKEFILE on)
@@ -13,7 +13,7 @@ fetch_content(thirdparty https://github.com/nearmeng/thirdparty.git master)
 
 init_project()
 
-pre_project(STATIC)
+pre_project(common STATIC)
 
 add_project()
 
