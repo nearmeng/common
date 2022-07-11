@@ -125,6 +125,7 @@ function (add_project)
 	elseif (TARGET_TYPE STREQUAL "RUNTIME")
 		add_executable(${TARGET_NAME} ${SRC_FILES})
 	endif ()
+    add_library(mango::${TARGET_NAME} ALIAS ${TARGET_NAME})
 
 	message(add_project\ ${TARGET_NAME})
 endfunction()
