@@ -10,7 +10,7 @@ public:
 	CTimeMgr() {};
 	~CTimeMgr() {};
 
-	BOOL init(int32_t nMgrShmType, int32_t nPoolShmType, int32_t nTimerPoolCount, BOOL bResume);
+	BOOL init(int32_t nMgrShmType, int32_t nPoolShmType, int32_t nGuidType, int32_t nTimerPoolCount, BOOL bResume);
 	BOOL uninit(void);
 	inline static CTimeMgr& instance(void);
 	void mainloop(void);
@@ -40,6 +40,7 @@ private:
 	void _cascade(LINK_HEAD* pTimerList);
 
 private:
+    int32_t                                 m_nGuidType;
 	TIME_MGR_DATA*							m_pTimeMgr;
 	CShmObject<TIME_MGR_DATA>				m_ShmTimerMgr;
 	CShmObjectPool<TIMER_HANDLER, uint64_t> m_ShmTimerPool;

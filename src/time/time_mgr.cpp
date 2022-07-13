@@ -17,9 +17,11 @@ uint64_t CTimeMgr::get_server_tick(void)
 #endif	// WIN32
 }
 
-BOOL CTimeMgr::init(int32_t nMgrShmType, int32_t nPoolShmType, int32_t nTimerPoolCount, BOOL bResume)
+BOOL CTimeMgr::init(int32_t nMgrShmType, int32_t nPoolShmType, int32_t nGuidType, int32_t nTimerPoolCount, BOOL bResume)
 {
 	int32_t nRetCode = 0;
+
+    m_nGuidType = nGuidType;
 	
 	nRetCode = m_ShmTimerMgr.init(nMgrShmType, bResume);
 	LOG_PROCESS_ERROR(nRetCode);
@@ -112,7 +114,7 @@ BOOL CTimeMgr::add_timer(int32_t nFirstInterval, int32_t nRepeatInterval, int32_
 	if (nCbDataLen > 0)
 		LOG_PROCESS_ERROR(pCbData);
 
-	qwTimerID = guid_alloc(1);
+	qwTimerID = guid_alloc(m_nGuidType);
 	LOG_PROCESS_ERROR(qwTimerID > 0);
 
 	pTimerHandler = m_ShmTimerPool.new_object(qwTimerID);
