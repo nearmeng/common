@@ -21,7 +21,7 @@ BOOL load_global_server_config(void* pConfig, int32_t nSize, const char* pcszCon
 	LOG_PROCESS_ERROR(nSize > 0);
 
 	{
-		memset(pConfig, 0, nSize);
+		//memset(pConfig, 0, nSize);
 
 		g_ConfigScript.uninit();
 
