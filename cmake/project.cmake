@@ -36,36 +36,11 @@ function (init_project)
 
     	add_definitions (/MP)
 
-    	foreach (flag
-    		CMAKE_C_FLAGS_RELEASE CMAKE_C_FLAGS_RELWITHDEBINFO
-    		CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_DEBUG_INIT
-    		CMAKE_CXX_FLAGS_RELEASE CMAKE_CXX_FLAGS_RELWITHDEBINIFO
-    		CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_DEBUG_INIT
-    		CMAKE_CXX_FLAGS
-    	) 
-    		string (FIND ${flag} "RELEASE" is_release)
-    		string (FIND ${flag} "DEBUG" is_debug)
-
-    		if (${is_release} GREATER -1) 
-    			# add MD
-    			string (FIND "${${flag}}" "/MD" has_md)
-    			if(has_md EQUAL -1)
-    				set("${flag}" "${${flag}}" /MD)
-    			endif()
-    		elseif (${is_debug} GREATER -1)
-    			# add MDd
-    			string (FIND "${${flag}}" "/MDd" has_mdt)
-    			if(has_mdt EQUAL -1)
-    				set("${flag}" "${${flag}}" /MDd)
-    			endif()
-    		endif ()
-
-    		string (REPLACE "/MD" "/MT" "${flag}" "${${flag}}")
-    		string (REPLACE "EHsc" "" "${flag}" "${${flag}}")
-
-    		set ("${flag}" "${${flag}} /bigobj /GR /fp:fast /Zc:wchar_t-")
-    		message ("${flag} ${${flag}}")
-    	endforeach ()
+        add_compile_options(
+            $<$<CONFIG:>:/MT> #---------|
+            $<$<CONFIG:Debug>:/MTd> #---|-- Statically link the runtime libraries
+            $<$<CONFIG:Release>:/MT> #--|
+        )
 
     	set ("${CMAKE_C_FLAGS_RELEASE}" "${${CMAKE_C_FLAGS_RELEASE}} /arch:AVX2
     	/Oi /Ot /GL")
