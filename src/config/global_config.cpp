@@ -9,7 +9,7 @@
 
 static CLuaScript g_ConfigScript;
 
-BOOL load_global_server_config(void* pConfig, int32_t nSize, const char* pcszConfigClassName,
+BOOL load_global_server_config(void* pConfig, const char* pcszConfigClassName,
 	const char* pcszFileName, const char* pcszLuaObjName, std::vector<TOLUA_FUNC> vFuncs)
 {
 	int32_t nRetCode = 0;
@@ -18,11 +18,8 @@ BOOL load_global_server_config(void* pConfig, int32_t nSize, const char* pcszCon
 	LOG_PROCESS_ERROR(pcszConfigClassName);
 	LOG_PROCESS_ERROR(pcszFileName);
 	LOG_PROCESS_ERROR(pcszLuaObjName);
-	LOG_PROCESS_ERROR(nSize > 0);
 
 	{
-		//memset(pConfig, 0, nSize);
-
 		g_ConfigScript.uninit();
 
 		nRetCode = g_ConfigScript.init();
