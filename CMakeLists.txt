@@ -1,13 +1,10 @@
 cmake_minimum_required (VERSION 3.20)
 
 project(common)
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-#set(CMAKE_VERBOSE_MAKEFILE on)
-
-include (precompile)
-include (project)
-include (fetch_content)
+include (FetchContent)
+FetchContent_Declare(cmake_tool GIT_REPOSITORY https://github.com/nearmeng/cmake_tools.git GIT_TAG master)
+FetchContent_MakeAvailable(cmake_tool)
 
 fetch_content(thirdparty https://github.com/nearmeng/thirdparty.git master)
 
