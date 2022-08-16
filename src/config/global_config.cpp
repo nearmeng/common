@@ -5,6 +5,8 @@
 #include "lua/lua_script.h"
 #include "string/string_ex.h"
 
+#include "embed_source.h"
+
 #define LOAD_FILE_FUNC_NAME "load_file"
 
 static CLuaScript g_ConfigScript;
@@ -30,6 +32,9 @@ BOOL load_global_server_config(void* pConfig, const char* pcszConfigClassName,
 			vFuncs[i](g_ConfigScript.get_lua_state());
 		}
 
+		nRetCode = g_ConfigScript.load_from_buffer("util.lua", pcszUtilLuaSource, strlen(pcszUtilLuaSource));
+		LOG_PROCESS_ERROR(nRetCode);
+		
 		nRetCode = g_ConfigScript.load_from_file(pcszFileName, TRUE);
 		LOG_PROCESS_ERROR(nRetCode);
 
