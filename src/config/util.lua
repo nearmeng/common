@@ -93,7 +93,9 @@ function serialize_table(obj)
 end
 
 function load_file(config, config_name)
-	load_traverse_table(config, _G[config_name]);
+	if(_G[config_name] != nil) then
+		load_traverse_table(config, _G[config_name]);
+	end
 end
 
 function load_string(dst, src_string)
